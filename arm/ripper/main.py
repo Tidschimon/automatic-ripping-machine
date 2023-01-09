@@ -187,22 +187,23 @@ if __name__ == "__main__":
     # Log all params/attribs from the drive
     log_udev_params(devpath)
 
-    try:
-        main(log_file, job, args.protection)
-    except Exception as error:
-        logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
-        utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
-                                                  f"{job.title}. Check the logs for more details. {error}")
-        job.status = "fail"
-        job.errors = str(error)
-        job.eject()
-        # Possibly add cleanup section here for failed job files
-    else:
-        job.status = "success"
-    finally:
-        job.stop_time = datetime.datetime.now()
-        job_length = job.stop_time - job.start_time
-        minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
-        hours, minutes = divmod(minutes, 60)
-        job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
-        db.session.commit()
+    with app.app_context():
+        try:
+            main(log_file, job, args.protection)
+        except Exception as error:
+            logging.error("A fatal error has occurred and ARM is exiting.  See traceback below for details.")
+            utils.notify(job, constants.NOTIFY_TITLE, "ARM encountered a fatal error processing "
+                                                    f"{job.title}. Check the logs for more details. {error}")
+            job.status = "fail"
+            job.errors = str(error)
+            job.eject()
+            # Possibly add cleanup section here for failed job files
+        else:
+            job.status = "success"
+        finally:
+            job.stop_time = datetime.datetime.now()
+            job_length = job.stop_time - job.start_time
+            minutes, seconds = divmod(job_length.seconds + job_length.days * 86400, 60)
+            hours, minutes = divmod(minutes, 60)
+            job.job_length = f'{hours:d}:{minutes:02d}:{seconds:02d}'
+            db.session.commit()
